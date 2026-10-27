@@ -2,13 +2,12 @@
 ob_start();
 require __DIR__ . '/app/bootstrap.php';
 
-$paginas = ['orgaos', 'reunioes', 'pontos'];
-$p = $_GET['p'] ?? 'orgaos';
+$paginas = ['inicio', 'orgaos', 'reunioes', 'pontos'];
+$p = $_GET['p'] ?? 'inicio';
 if (!in_array($p, $paginas, true)) {
-    $p = 'orgaos';
+    $p = 'inicio';
 }
 
-// A página "pontos" faz parte do separador "Reuniões"
 $menuAtivo = ($p === 'pontos') ? 'reunioes' : $p;
 ?>
 <!DOCTYPE html>
@@ -22,6 +21,7 @@ $menuAtivo = ($p === 'pontos') ? 'reunioes' : $p;
 <body>
   <nav>
     <span class="marca">Gestão de Atas</span>
+    <a href="index.php?p=inicio" class="<?= $menuAtivo === 'inicio' ? 'ativo' : '' ?>">Início</a>
     <a href="index.php?p=orgaos" class="<?= $menuAtivo === 'orgaos' ? 'ativo' : '' ?>">Órgãos e Membros</a>
     <a href="index.php?p=reunioes" class="<?= $menuAtivo === 'reunioes' ? 'ativo' : '' ?>">Reuniões</a>
   </nav>

@@ -204,3 +204,49 @@ ol li:last-child {
     overflow-x: auto;
   }
 }
+
+/* Página de início */
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+.cartao {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.cartao .numero {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f3a5f;
+}
+
+.cartao .rotulo {
+  color: #52606d;
+}
+
+.atalhos {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.atalhos a {
+  background: #1f3a5f;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+}
+
+.atalhos a:hover {
+  background: #2c5282;
+}

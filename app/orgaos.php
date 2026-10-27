@@ -6,21 +6,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         executa('INSERT INTO orgaos (nome, tipo) VALUES (?, ?)',
                 [trim($_POST['nome']), $_POST['tipo']]);
     } elseif ($acao === 'membro') {
-        executa('INSERT INTO membros (nome, email, telefone) VALUES (?, ?, ?)',
-                [trim($_POST['nome']), trim($_POST['email']), trim($_POST['telefone'])]);
-    } elseif ($acao === 'associar') {
-        executa(
-            'INSERT INTO membro_orgao (membro_id, orgao_id, cargo, direito_voto)
-             VALUES (?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE cargo = VALUES(cargo),
-                                     direito_voto = VALUES(direito_voto)',
-            [
-                (int)$_POST['membro_id'],
-                (int)$_POST['orgao_id'],
-                trim($_POST['cargo']),
-                isset($_POST['direito_voto']) ? 1 : 0,
-            ]
-        );
+        $nome     = trim($_POST['nome'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
+        $telefone = trim($_POST['telefone'] ?? '');
+
+        // orgaos[ID] = marcado; cargo[ID] = texto; voto[ID] = marcado
+        $orgaosSel = $_POST['orgaos'] ?? [];
+        $cargos    = $_POST['cargo'] ?? [];
+        $votos     = $_POST['voto'] ?? [];
+
+        if ($nome === '' || !$orgaosSel) {
+            header('Location: index.php?p=orgaos&erro=1');
+            exit;
+        }
+
+        $db->begin_transaction();
+        try {
+            executa(
+                'INSERT INTO membros (nome, email, telefone) VALUES (?, ?, ?)',
+                [$nome, $email, $telefone]
+            );
+            $membroId = (int)$db->insert_id;
+
+            foreach (array_keys($orgaosSel) as $orgaoId) {
+                $orgaoId = (int)$orgaoId;
+                executa(
+                    'INSERT INTO membro_orgao (membro_id, orgao_id, cargo, direito_voto)
+                     VALUES (?, ?, ?, ?)',
+                    [
+                        $membroId,
+                        $orgaoId,
+                        trim($cargos[$orgaoId] ?? ''),
+                        isset($votos[$orgaoId]) ? 1 : 0,
+                    ]
+                );
+            }
+
+            $db->commit();
+        } catch (Throwable $ex) {
+            $db->rollback();
+            throw $ex;
+        }
     } elseif ($acao === 'remover') {
         executa('DELETE FROM membro_orgao WHERE orgao_id = ? AND membro_id = ?',
                 [(int)$_POST['orgao_id'], (int)$_POST['membro_id']]);
@@ -29,9 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-$orgaos  = consulta('SELECT * FROM orgaos WHERE ativo = 1 ORDER BY nome');
-$membros = consulta('SELECT * FROM membros WHERE ativo = 1 ORDER BY nome');
-$tipos   = [
+$orgaos = consulta('SELECT * FROM orgaos WHERE ativo = 1 ORDER BY nome');
+$tipos  = [
     'JUNTA_FREGUESIA'      => 'Junta de Freguesia',
     'ASSEMBLEIA_FREGUESIA' => 'Assembleia de Freguesia',
     'COMISSAO_AVALIACAO'   => 'Comissão de Avaliação',
@@ -40,6 +65,10 @@ $tipos   = [
 ];
 ?>
 <h1>Órgãos e Membros</h1>
+
+<?php if (isset($_GET['erro'])): ?>
+  <p><strong>Indica o nome e escolhe pelo menos um órgão.</strong></p>
+<?php endif; ?>
 
 <h2>Novo órgão</h2>
 <form method="post">
@@ -59,25 +88,22 @@ $tipos   = [
   <input name="nome" placeholder="Nome" required>
   <input name="email" type="email" placeholder="Email">
   <input name="telefone" placeholder="Telefone">
-  <button>Criar</button>
-</form>
 
-<h2>Associar membro a órgão</h2>
-<form method="post">
-  <input type="hidden" name="acao" value="associar">
-  <select name="orgao_id" required>
-    <?php foreach ($orgaos as $o): ?>
-      <option value="<?= $o['id'] ?>"><?= e($o['nome']) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <select name="membro_id" required>
-    <?php foreach ($membros as $m): ?>
-      <option value="<?= $m['id'] ?>"><?= e($m['nome']) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <input name="cargo" placeholder="Cargo (ex: Presidente)">
-  <label><input type="checkbox" name="direito_voto" checked> Direito a voto</label>
-  <button>Associar</button>
+  <h3>Órgãos</h3>
+  <?php foreach ($orgaos as $o): ?>
+    <div>
+      <label>
+        <input type="checkbox" name="orgaos[<?= (int)$o['id'] ?>]" value="1">
+        <?= e($o['nome']) ?>
+      </label>
+      <input name="cargo[<?= (int)$o['id'] ?>]" placeholder="Cargo (ex: Presidente)">
+      <label>
+        <input type="checkbox" name="voto[<?= (int)$o['id'] ?>]" checked> Direito a voto
+      </label>
+    </div>
+  <?php endforeach; ?>
+
+  <button>Criar membro</button>
 </form>
 
 <h2>Composição dos órgãos</h2>
